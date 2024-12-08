@@ -13,9 +13,17 @@ const containerStyle: CSSProperties = {
 };
 
 export function ReservationDetails({ reservation }: Props) {
+  const copyReservationUrl = () => {
+    const url = `${window.location.origin}/?confirmationCode=${reservation.confirmationCode}`;
+    navigator.clipboard.writeText(url);
+  };
+
   return (
     <div style={containerStyle}>
-      <h5>Confirmation code: {reservation.confirmationCode}</h5>
+      <h5>
+        Confirmation code: {reservation.confirmationCode}{" "}
+        <button onClick={copyReservationUrl}>get a link</button>
+      </h5>
 
       <Tables items={reservation.tables} />
     </div>
