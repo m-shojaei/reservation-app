@@ -15,6 +15,7 @@ import {
 import "./App.css";
 import { ReservationDetails } from "./components/ReservationDetails";
 import { useSearchParams } from "react-router";
+import { Confirmation_Code_Key } from "../constants";
 
 const headerStyle: CSSProperties = {
   position: "fixed",
@@ -49,7 +50,7 @@ export function App() {
 
   const retrieveReservation = useCallback(
     async (code: string) => {
-      setSearchParams({ confirmationCode: code });
+      setSearchParams({ [Confirmation_Code_Key]: code });
 
       setMessage("");
       setIsRetrieving(true);
@@ -83,7 +84,7 @@ export function App() {
   };
 
   useEffect(() => {
-    const urlCode = searchParams.get("confirmationCode");
+    const urlCode = searchParams.get(Confirmation_Code_Key);
 
     if (urlCode) {
       setInsertedCode(urlCode);
