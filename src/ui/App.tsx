@@ -1,4 +1,4 @@
-import { CSSProperties, FormEventHandler, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useState } from "react";
 import { sampleRequest } from "../database/sampleRequest";
 import {
   processRequest,
@@ -14,6 +14,7 @@ import {
 
 import "./App.css";
 import { ReservationDetails } from "./components/ReservationDetails";
+import { useSearchParams } from "react-router";
 
 const headerStyle: CSSProperties = {
   position: "fixed",
@@ -35,10 +36,10 @@ export function App() {
   const [insertedCode, setInsertedCode] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [isRetrieving, setIsRetrieving] = useState<boolean>(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const handleSubmit = async () => {
     setMessage("");
-    console.log("Generating reservation...");
 
     const processedRequest = processRequest(sampleRequest);
 
@@ -46,26 +47,28 @@ export function App() {
     setReservation(processedRequest);
   };
 
-  const handleRetrieve: FormEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault();
-    console.log("Retrieving reservation...");
+  const retrieveReservation = useCallback(
+    async (code: string) => {
+      setSearchParams({ confirmationCode: code });
 
-    setMessage("");
-    setIsRetrieving(true);
+      setMessage("");
+      setIsRetrieving(true);
 
-    const reservation = await getReservationByConfirmationCode(insertedCode);
-    // Faking a delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+      const reservation = await getReservationByConfirmationCode(code);
+      // Faking a delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    if (reservation) {
-      setReservation(reservation);
-    } else {
-      setMessage("Reservation not found");
-      setReservation(null);
-    }
+      if (reservation) {
+        setReservation(reservation);
+      } else {
+        setMessage("Reservation not found");
+        setReservation(null);
+      }
 
-    setIsRetrieving(false);
-  };
+      setIsRetrieving(false);
+    },
+    [setSearchParams]
+  );
 
   const handleShuffleSeats = async (reservation: Reservation) => {
     const shuffledReservation = shuffleReservationSeats(reservation);
@@ -78,6 +81,15 @@ export function App() {
     removeAllReservations();
     setReservation(null);
   };
+
+  useEffect(() => {
+    const urlCode = searchParams.get("confirmationCode");
+
+    if (urlCode) {
+      setInsertedCode(urlCode);
+      retrieveReservation(urlCode);
+    }
+  }, [searchParams, retrieveReservation]);
 
   return (
     <div className="App">
@@ -93,7 +105,12 @@ export function App() {
             <input type="submit" value="Generate" onClick={handleSubmit} />
           )}
 
-          <form onSubmit={handleRetrieve}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              retrieveReservation(insertedCode);
+            }}
+          >
             <input
               required
               type="text"
