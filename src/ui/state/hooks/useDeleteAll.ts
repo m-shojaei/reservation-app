@@ -4,7 +4,7 @@ import { removeAllReservations } from "../../../database";
 
 export function useDeleteAll(dispatch: Dispatch<Action>) {
   return async () => {
-    removeAllReservations();
+    await removeAllReservations();
     dispatch({ type: "RESET" });
   };
 }
