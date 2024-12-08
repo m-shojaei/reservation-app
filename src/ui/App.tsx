@@ -1,19 +1,15 @@
-import { CSSProperties, FormEventHandler, useState } from "react";
-import { sampleRequest } from "../database/sampleRequest";
-import {
-  processRequest,
-  shuffleReservationSeats,
-} from "../seatingUtils/seatingUtils";
-import { Reservation } from "../types";
-import {
-  getReservationByConfirmationCode,
-  removeAllReservations,
-  addReservation,
-  updateReservation,
-} from "../database";
+import { CSSProperties, useEffect, useReducer } from "react";
+import { useSearchParams } from "react-router";
+
+import { initialState, reducer } from "./state";
+import { ReservationDetails } from "./components/ReservationDetails";
+import { Confirmation_Code_Key } from "../constants";
+import { useDeleteAll } from "./state/hooks/useDeleteAll";
+import { useReservationSubmit } from "./state/hooks/useReservationSubmit";
+import { useRetrieveReservation } from "./state/hooks/useRetrieveReservation";
+import { useShuffleSeats } from "./state/hooks/useShuffleSeats";
 
 import "./App.css";
-import { ReservationDetails } from "./components/ReservationDetails";
 
 const headerStyle: CSSProperties = {
   position: "fixed",
@@ -31,86 +27,62 @@ const deleteAllButtonStyle: CSSProperties = {
 };
 
 export function App() {
-  const [reservation, setReservation] = useState<Reservation | null>(null);
-  const [insertedCode, setInsertedCode] = useState<string>("");
-  const [message, setMessage] = useState<string>("");
-  const [isRetrieving, setIsRetrieving] = useState<boolean>(false);
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const [searchParams] = useSearchParams();
 
-  const handleSubmit = async () => {
-    setMessage("");
-    console.log("Generating reservation...");
+  const retrieveReservation = useRetrieveReservation(dispatch);
+  const handleSubmit = useReservationSubmit(dispatch);
+  const handleShuffleSeats = useShuffleSeats(dispatch);
+  const handleDeleteAll = useDeleteAll(dispatch);
 
-    const processedRequest = processRequest(sampleRequest);
+  useEffect(() => {
+    const urlCode = searchParams.get(Confirmation_Code_Key);
 
-    await addReservation(processedRequest);
-    setReservation(processedRequest);
-  };
-
-  const handleRetrieve: FormEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault();
-    console.log("Retrieving reservation...");
-
-    setMessage("");
-    setIsRetrieving(true);
-
-    const reservation = await getReservationByConfirmationCode(insertedCode);
-    // Faking a delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    if (reservation) {
-      setReservation(reservation);
-    } else {
-      setMessage("Reservation not found");
-      setReservation(null);
+    if (urlCode) {
+      dispatch({ type: "SET_INSERTED_CODE", payload: urlCode });
+      retrieveReservation(urlCode);
     }
-
-    setIsRetrieving(false);
-  };
-
-  const handleShuffleSeats = async (reservation: Reservation) => {
-    const shuffledReservation = shuffleReservationSeats(reservation);
-    await updateReservation(shuffledReservation);
-
-    setReservation(shuffledReservation);
-  };
-
-  const handleDeleteAll = () => {
-    removeAllReservations();
-    setReservation(null);
-  };
+  }, [searchParams, retrieveReservation]);
 
   return (
     <div className="App">
       <div className="App-header">
         <div style={headerStyle}>
-          {reservation ? (
+          {state.reservation ? (
             <input
               type="submit"
               value="Shuffle seats"
-              onClick={() => handleShuffleSeats(reservation)}
+              onClick={() => handleShuffleSeats(state.reservation!)}
             />
           ) : (
             <input type="submit" value="Generate" onClick={handleSubmit} />
           )}
 
-          <form onSubmit={handleRetrieve}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              retrieveReservation(state.insertedCode);
+            }}
+          >
             <input
               required
               type="text"
-              value={insertedCode}
+              value={state.insertedCode}
               placeholder="Enter confirmation code"
-              onChange={(e) => setInsertedCode(e.target.value)}
+              onChange={(e) =>
+                dispatch({ type: "SET_INSERTED_CODE", payload: e.target.value })
+              }
             />
 
             <input
               type="submit"
               value="Retrieve"
-              disabled={isRetrieving || !insertedCode}
+              disabled={state.isRetrieving || !state.insertedCode}
             />
           </form>
         </div>
-        {isRetrieving && <h6>Retrieving...</h6>}
-        {message && <h6>{message}</h6>}
+        {state.isRetrieving && <h6>Retrieving...</h6>}
+        {state.message && <h6>{state.message}</h6>}
 
         <input
           style={deleteAllButtonStyle}
@@ -119,8 +91,8 @@ export function App() {
           onClick={handleDeleteAll}
         />
 
-        {!isRetrieving && reservation && (
-          <ReservationDetails reservation={reservation} />
+        {!state.isRetrieving && state.reservation && (
+          <ReservationDetails reservation={state.reservation} />
         )}
       </div>
     </div>

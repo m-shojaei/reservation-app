@@ -1,6 +1,7 @@
 import { CSSProperties } from "react";
 import { Reservation } from "../../types";
 import { Tables } from "./components/Tables";
+import { Base_Name, Confirmation_Code_Key } from "../../constants";
 
 type Props = {
   reservation: Reservation;
@@ -13,9 +14,17 @@ const containerStyle: CSSProperties = {
 };
 
 export function ReservationDetails({ reservation }: Props) {
+  const copyReservationUrl = () => {
+    const url = `${window.location.origin}/${Base_Name}?${Confirmation_Code_Key}=${reservation.confirmationCode}`;
+    navigator.clipboard.writeText(url);
+  };
+
   return (
     <div style={containerStyle}>
-      <h5>Confirmation code: {reservation.confirmationCode}</h5>
+      <h5>
+        Confirmation code: {reservation.confirmationCode}{" "}
+        <button onClick={copyReservationUrl}>get a link</button>
+      </h5>
 
       <Tables items={reservation.tables} />
     </div>
