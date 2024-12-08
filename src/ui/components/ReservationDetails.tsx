@@ -1,6 +1,7 @@
 import { CSSProperties } from "react";
 import { Reservation } from "../../types";
 import { Tables } from "./components/Tables";
+import { Base_Name } from "../../constants";
 
 type Props = {
   reservation: Reservation;
@@ -14,7 +15,7 @@ const containerStyle: CSSProperties = {
 
 export function ReservationDetails({ reservation }: Props) {
   const copyReservationUrl = () => {
-    const url = `${window.location.origin}/?confirmationCode=${reservation.confirmationCode}`;
+    const url = `${window.location.origin}/${Base_Name}?confirmationCode=${reservation.confirmationCode}`;
     navigator.clipboard.writeText(url);
   };
 
